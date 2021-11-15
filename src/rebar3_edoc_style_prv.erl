@@ -9,7 +9,7 @@
               {rebar_state, add_provider, 2},
               {rebar_state, command_parsed_args, 1}]).
 
--define(PROVIDER, rebar3_edoc_style).
+-define(PROVIDER, edoc_style).
 -define(DEPS, []).
 -define(OPTS,
         [{boolean, $b, "boolean", {boolean, false}, "Boolean example"},
