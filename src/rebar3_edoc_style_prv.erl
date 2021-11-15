@@ -38,12 +38,16 @@ init(State) ->
 do(State) ->
     Opts = parse_opts(State),
     ok = rebar_api:debug("Opts: ~p", [Opts]),
-    case Opts of
-        #{boolean := true} ->
-            {ok, State};
-        _ ->
-            {error, io_lib:format("Was broken with Opts: ~p", [Opts])}
-    end.
+    rebar_opts:set(edoc, stylesheet, [code:priv_dir(rebar3_edoc_style), "github-markdown.css"]),
+    rebar_opts:set(edoc, layout, rebar3_edoc_style_wrapper),
+    rebar_opts:set(edoc, doclet, rebar3_edoc_style_wrapper),
+    {ok, State}.
+    %case Opts of
+    %    #{boolean := true} ->
+    %        {ok, State};
+    %    _ ->
+    %        {error, io_lib:format("Was broken with Opts: ~p", [Opts])}
+    %end.
 
 -spec format_error(any()) -> iolist().
 format_error(Reason) ->
