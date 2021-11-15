@@ -1,8 +1,6 @@
 -define(BODY_CLASSES, "markdown-body language-erlang").
-
--define(
-   ADDITIONAL_STYLE,
-   "<style>
+-define(ADDITIONAL_STYLE,
+        "<style>
     body {
       box-sizing: border-box;
       min-width: 200px;
@@ -66,12 +64,10 @@
       margin-top: 16px;
     }
     </style>").
-
--define(
-   SYNTAX_HIGHLIGHTING_CSS,
-   "<link href=\"prism.css\" rel=\"stylesheet\" />").
--define(
-   SYNTAX_HIGHLIGHTING_JS,
-   "<script src=\"prism.js\"></script>").
-
+-define(PRIV, code:priv_dir(rebar3_edoc_style)).
+-define(PRIME_CSS, ?PRIV ++ "/prism.css").
+-define(PRIME_JS, ?PRIV ++ "/prism.js").
+-define(SYNTAX_HIGHLIGHTING_CSS,
+        "<link href=\"" ++ ?PRIME_CSS ++ "\" rel=\"stylesheet\" />").
+-define(SYNTAX_HIGHLIGHTING_JS, "<script src=\"" ++ ?PRIME_JS ++ "\"></script>").
 -define(LANG_REGEX, "none|elixir|erlang").

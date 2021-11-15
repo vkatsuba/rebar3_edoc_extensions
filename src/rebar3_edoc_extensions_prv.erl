@@ -1,5 +1,5 @@
-%%% @doc Plugin provider for rebar3 rebar3_edoc_style.
--module(rebar3_edoc_style_prv).
+%%% @doc Plugin provider for rebar3 rebar3_edoc_extensions.
+-module(rebar3_edoc_extensions_prv).
 
 -export([init/1, do/1, format_error/1]).
 
@@ -9,8 +9,8 @@
               {rebar_state, add_provider, 2},
               {rebar_state, command_parsed_args, 1}]).
 
--define(PROVIDER, edoc_style).
--define(DEPS, []).
+-define(PROVIDER, edoc_extensions).
+-define(DEPS, [compile]).
 -define(OPTS,
         [{boolean, $b, "boolean", {boolean, false}, "Boolean example"},
          {string, $s, "rebar-config", {string, "some.txt"}, "String example"},
@@ -36,18 +36,15 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
-    Opts = parse_opts(State),
-    ok = rebar_api:debug("Opts: ~p", [Opts]),
-    rebar_opts:set(edoc, stylesheet, [code:priv_dir(rebar3_edoc_style), "github-markdown.css"]),
-    rebar_opts:set(edoc, layout, rebar3_edoc_style_wrapper),
-    rebar_opts:set(edoc, doclet, rebar3_edoc_style_wrapper),
-    {ok, State}.
-    %case Opts of
-    %    #{boolean := true} ->
-    %        {ok, State};
-    %    _ ->
-    %        {error, io_lib:format("Was broken with Opts: ~p", [Opts])}
-    %end.
+    EdocOpts = rebar_state:get(State, edoc_opts, []),
+    NewOpts =
+        [{stylesheet, [code:priv_dir(rebar3_edoc_extensions), "/github-markdown.css"]},
+         {xml_export, rebar3_edoc_style_export},
+         {layout, rebar3_edoc_extensions_wrapper},
+         {doclet, rebar3_edoc_extensions_wrapper}
+         | EdocOpts],
+    NesState = rebar_state:set(State, edoc_opts, NewOpts),
+    rebar_prv_edoc:do(NesState).
 
 -spec format_error(any()) -> iolist().
 format_error(Reason) ->
@@ -56,11 +53,3 @@ format_error(Reason) ->
 %% =============================================================================
 %% Internal functions
 %% =============================================================================
-
--spec parse_opts(rebar_state:t()) -> maps:map().
-parse_opts(State) ->
-    {Args, _} = rebar_state:command_parsed_args(State),
-    #{boolean => proplists:get_value(boolean, Args),
-      string => proplists:get_value(string, Args),
-      atom => proplists:get_value(atom, Args),
-      atom_none => proplists:get_value(atom_none, Args)}.

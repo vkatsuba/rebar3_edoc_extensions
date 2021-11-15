@@ -1,13 +1,13 @@
 ---
 name: Feature request
-about: Suggest an idea for rebar3_edoc_style
+about: Suggest an idea for rebar3_edoc_extensions
 title: ''
 labels: ''
 assignees: ''
 ---
 
-## `rebar3_edoc_style` version
-[Put release version here and update tag link(0.0.0)...](https://github.com/vkatsuba/rebar3_edoc_style.git)
+## `rebar3_edoc_extensions` version
+[Put release version here and update tag link(0.0.0)...](https://github.com/vkatsuba/rebar3_edoc_extensions.git)
 
 ## `OS` version
 <!-- Put the `OS` version ... -->

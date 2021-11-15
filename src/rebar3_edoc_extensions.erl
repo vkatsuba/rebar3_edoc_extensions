@@ -1,5 +1,5 @@
-%%% @doc Main entry point for the rebar3 rebar3_edoc_style plugin.
--module(rebar3_edoc_style).
+%%% @doc Main entry point for the rebar3 rebar3_edoc_extensions plugin.
+-module(rebar3_edoc_extensions).
 
 -export([init/1]).
 
@@ -11,5 +11,5 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
-    {ok, State1} = rebar3_edoc_style_prv:init(State),
+    {ok, State1} = rebar3_edoc_extensions_prv:init(State),
     {ok, State1}.

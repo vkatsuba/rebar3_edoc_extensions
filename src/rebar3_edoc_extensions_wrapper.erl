@@ -1,22 +1,26 @@
--module(rebar3_edoc_style_wrapper).
+-module(rebar3_edoc_extensions_wrapper).
 
 -include_lib("edoc/include/edoc_doclet.hrl").
 
--include("src/edoc.hrl").
+-include("rebar3_edoc_extensions.hrl").
 
 -export([module/2, overview/2, type/1]).
 -export([run/2]).
 
+-spec module(term(), term()) -> term().
 module(Element, Options) ->
     edoc_layout:module(Element, Options).
 
+-spec overview(term(), term()) -> term().
 overview(Element, Options) ->
     Overview = edoc_layout:overview(Element, Options),
     patch_html(Overview).
 
+-spec type(term()) -> term().
 type(Element) ->
     edoc_layout:type(Element).
 
+-spec run(list(), term()) -> list().
 run(Cmd, Ctxt) ->
     ok = edoc_doclet:run(Cmd, Ctxt),
     %% Ctxt is a #context{} record in Erlang 23 and #doclet_context{} in Erlang
@@ -31,6 +35,7 @@ run(Cmd, Ctxt) ->
         {error, Reason} -> exit({error, Reason})
     end.
 
+-spec patch_html(list()) -> list().
 patch_html(Html) ->
     Html1 = re:replace(
                   Html,
@@ -55,15 +60,9 @@ patch_html(Html) ->
                   "<pre><code> +(" ?LANG_REGEX ")(?:\n)(.*)</code></pre>",
                   "<pre><code class=\"language-\\1\">\\2</code></pre>",
                   [{return, list}, ungreedy, dotall, global]),
-    %% <tt>...</tt> is used for authors' email address, we don't want to
-    %% convert them to <code>...</code>.
-    %Html5 = re:replace(
-    %              Html4,
-    %              "<tt>(.*)</tt>",
-    %              "<code>\\1</code>",
-    %              [{return, list}, ungreedy, dotall, global]),
     Html4.
 
+-spec add_toc(list(), list()) -> list().
 add_toc(Html, Dir) ->
     Toc = generate_toc(Dir),
     re:replace(
@@ -72,8 +71,9 @@ add_toc(Html, Dir) ->
       Toc ++ "\\1",
       [{return, list}]).
 
-generate_toc(Dir) ->
-    OverviewFile = filename:join(Dir, "overview.edoc"),
+-spec generate_toc(list()) -> list().
+generate_toc(_Dir) ->
+    OverviewFile = filename:join(code:priv_dir(rebar3_edoc_style), "overview.edoc"),
     {ok, Overview} = file:read_file(OverviewFile),
     Lines = re:split(Overview, "\\n", [{return, list}]),
     Titles = [Line ||
@@ -81,6 +81,7 @@ generate_toc(Dir) ->
               match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
     generate_toc1(Titles, 0, []).
 
+-spec generate_toc1(list(), integer(), list()) -> list().
 generate_toc1([Title | Rest], CurrentLevel, Result) ->
     ReOpts = [{capture, all_but_first, list}],
     {match, [Equals, Title1]} = re:run(Title, "^(=+) *(.*)", ReOpts),
@@ -115,7 +116,7 @@ generate_toc1([Title | Rest], CurrentLevel, Result) ->
             generate_toc1(Rest, Level, Result2)
     end;
 generate_toc1([], CurrentLevel, Result) ->
-    ["<h2 class=\"indextitle\">Khepri</h2>\n",
+    ["<h2 class=\"indextitle\">Documentation</h2>\n",
      Result,
      "</li>\n",
      ["</ul>\n" || _ <- lists:seq(0, CurrentLevel - 1)]].

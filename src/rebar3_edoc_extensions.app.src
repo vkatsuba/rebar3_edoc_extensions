@@ -1,6 +1,6 @@
 {application,
- rebar3_edoc_style,
- [{description, "A rebar plugin"},
+ rebar3_edoc_extensions,
+ [{description, "A pugin for extensions of EDoc"},
   {vsn, git},
   {applications, [kernel, stdlib]},
   {env, []},
