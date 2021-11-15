@@ -13,7 +13,7 @@ $ rebar3 compile
 Add the plugin to your rebar config:
 
 ```erlang
-{project_plugins, [{rebar3_edoc_style, "~> 0.1.0"}]}.
+{project_plugins, [{rebar3_edoc_extensions, "~> 0.1.0"}]}.
 ```
 
 For generate `doc` with new style, run:

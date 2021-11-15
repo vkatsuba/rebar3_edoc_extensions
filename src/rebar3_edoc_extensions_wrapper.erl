@@ -73,7 +73,7 @@ add_toc(Html, Dir) ->
 
 -spec generate_toc(list()) -> list().
 generate_toc(_Dir) ->
-    OverviewFile = filename:join(code:priv_dir(rebar3_edoc_style), "overview.edoc"),
+    OverviewFile = filename:join(code:priv_dir(rebar3_edoc_extensions), "overview.edoc"),
     {ok, Overview} = file:read_file(OverviewFile),
     Lines = re:split(Overview, "\\n", [{return, list}]),
     Titles = [Line ||
