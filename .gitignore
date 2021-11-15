@@ -12,3 +12,4 @@ _build
 log
 rebar3.crashdump
 _checkouts/
+doc
