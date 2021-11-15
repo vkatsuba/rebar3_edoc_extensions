@@ -64,7 +64,7 @@
       margin-top: 16px;
     }
     </style>").
--define(PRIV, code:priv_dir(rebar3_edoc_style)).
+-define(PRIV, code:priv_dir(rebar3_edoc_extensions)).
 -define(PRIME_CSS, ?PRIV ++ "/prism.css").
 -define(PRIME_JS, ?PRIV ++ "/prism.js").
 -define(SYNTAX_HIGHLIGHTING_CSS,

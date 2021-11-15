@@ -5,4 +5,4 @@
   {applications, [kernel, stdlib]},
   {env, []},
   {licenses, ["Apache 2.0"]},
-  {links, [{"github", "https://github.com/vkatsuba/rebar3_edoc_style.git"}]}]}.
+  {links, [{"github", "https://github.com/vkatsuba/rebar3_edoc_extensions.git"}]}]}.

@@ -1,4 +1,4 @@
--module(rebar3_edoc_style_SUITE).
+-module(rebar3_edoc_extensions_SUITE).
 
 -behaviour(ct_suite).
 
