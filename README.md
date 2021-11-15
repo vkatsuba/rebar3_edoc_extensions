@@ -1,6 +1,6 @@
-# rebar3_edoc_style
+# rebar3_edoc_extensions
 
-A rebar plugin description
+A pugin for extensions of [EDoc](https://www.erlang.org/doc/apps/edoc/chapter.html)
 
 ## Build
 
@@ -13,13 +13,10 @@ $ rebar3 compile
 Add the plugin to your rebar config:
 
 ```erlang
-{project_plugins, [{rebar3_edoc_style, "~> 0.0.0"}]}.
+{project_plugins, [{rebar3_edoc_style, "~> 0.1.0"}]}.
 ```
 
-Then just call your plugin directly in an existing application:
+For generate `doc` with new style, run:
 ```sh
-$ rebar3 rebar3_edoc_style
-===> Fetching rebar3_edoc_style
-===> Compiling rebar3_edoc_style
-<Plugin Output>
+$ rebar3 edoc_style
 ```
