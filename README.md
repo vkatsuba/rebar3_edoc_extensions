@@ -18,5 +18,5 @@ Add the plugin to your rebar config:
 
 For generate `doc` with new style, run:
 ```sh
-$ rebar3 edoc_style
+$ rebar3 edoc_extensions
 ```
