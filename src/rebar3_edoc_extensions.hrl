@@ -64,10 +64,6 @@
       margin-top: 16px;
     }
     </style>").
--define(PRIV, code:priv_dir(rebar3_edoc_extensions)).
--define(PRIME_CSS, ?PRIV ++ "/prism.css").
--define(PRIME_JS, ?PRIV ++ "/prism.js").
--define(SYNTAX_HIGHLIGHTING_CSS,
-        "<link href=\"" ++ ?PRIME_CSS ++ "\" rel=\"stylesheet\" />").
--define(SYNTAX_HIGHLIGHTING_JS, "<script src=\"" ++ ?PRIME_JS ++ "\"></script>").
+-define(SYNTAX_HIGHLIGHTING_CSS, "<link href=\"prism.css\" rel=\"stylesheet\" />").
+-define(SYNTAX_HIGHLIGHTING_JS, "<script src=\"prism.js\"></script>").
 -define(LANG_REGEX, "none|elixir|erlang").
