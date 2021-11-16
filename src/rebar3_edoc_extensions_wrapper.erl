@@ -30,6 +30,7 @@ run(#doclet_gen{app = App} = Cmd, Ctxt) ->
     {ok, Content0} = file:read_file(File),
     Content1 = add_toc(App, Content0, Dir),
     Content2 = patch_html(Content1),
+    ok = copy_static_files(Dir),
     case file:write_file(File, Content2) of
         ok              -> ok;
         {error, Reason} -> exit({error, Reason})
@@ -133,3 +134,17 @@ get_overview(Dir) ->
           {ok, Overview} = file:read_file(OverviewFile2),
           Overview
     end.
+
+-spec copy_static_files(list()) -> ok.
+copy_static_files(Dir) ->
+    PrivDir = code:priv_dir(rebar3_edoc_extensions),
+    PrismJSPathPriv = filename:join(PrivDir, "prism.js"),
+    PrismCSSPathPriv = filename:join(PrivDir, "prism.css"),
+    GithubMarkdownCSSPathPriv = filename:join(PrivDir, "github-markdown.css"),
+    PrismJSPath = filename:join(Dir, "prism.js"),
+    PrismCSSPath = filename:join(Dir, "prism.css"),
+    GithubMarkdownCSSPath = filename:join(Dir, "github-markdown.css"),
+    {ok, _} = file:copy(PrismJSPathPriv, PrismJSPath),
+    {ok, _} = file:copy(PrismCSSPathPriv, PrismCSSPath),
+    {ok, _} = file:copy(GithubMarkdownCSSPathPriv, GithubMarkdownCSSPath),
+    ok.
