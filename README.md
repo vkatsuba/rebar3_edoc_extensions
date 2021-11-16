@@ -1,6 +1,7 @@
 # rebar3_edoc_extensions
 [![Hex.pm Version][hexpm version]][hexpm]
 [![Hex.pm Downloads][hexpm downloads]][hexpm]
+[![Hex.pm Documentation][hexdocs documentation]][hexdocs]
 [![Build Status][gh badge]][gh]
 [![Erlang Versions][erlang version badge]][gh]
 
@@ -40,6 +41,8 @@ If need to use own custom `overview.edoc`, just create `overview.edoc` in `doc` 
 [hexpm]: https://hex.pm/packages/rebar3_edoc_extensions
 [hexpm version]: https://img.shields.io/hexpm/v/rebar3_edoc_extensions.svg?style=flat-square
 [hexpm downloads]: https://img.shields.io/hexpm/dt/rebar3_edoc_extensions.svg?style=flat-square
+[hexdocs documentation]: https://img.shields.io/badge/hex-docs-purple.svg?style=flat-square
+[hexdocs]: https://hexdocs.pm/rebar3_edoc_extensions
 [gh]: https://github.com/vkatsuba/rebar3_edoc_extensions/actions/workflows/ci.yml
 [gh badge]: https://img.shields.io/github/workflow/status/vkatsuba/rebar3_edoc_extensions/CI?style=flat-square
 [erlang version badge]: https://img.shields.io/badge/erlang-23.0%20to%2024.1-blue.svg?style=flat-square
