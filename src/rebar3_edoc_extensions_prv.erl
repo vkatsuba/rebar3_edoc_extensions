@@ -38,7 +38,7 @@ init(State) ->
 do(State) ->
     EdocOpts = rebar_state:get(State, edoc_opts, []),
     NewOpts =
-        [{stylesheet, [code:priv_dir(rebar3_edoc_extensions), "/github-markdown.css"]},
+        [{stylesheet, "github-markdown.css"},
          {xml_export, rebar3_edoc_extensions_export},
          {layout, rebar3_edoc_extensions_wrapper},
          {doclet, rebar3_edoc_extensions_wrapper}
