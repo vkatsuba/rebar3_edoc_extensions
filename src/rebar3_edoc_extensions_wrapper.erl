@@ -21,14 +21,14 @@ type(Element) ->
     edoc_layout:type(Element).
 
 -spec run(list(), term()) -> list().
-run(Cmd, Ctxt) ->
+run(#doclet_gen{app = App} = Cmd, Ctxt) ->
     ok = edoc_doclet:run(Cmd, Ctxt),
     %% Ctxt is a #context{} record in Erlang 23 and #doclet_context{} in Erlang
     %% 24. The directory is the second field in that record in both cases.
     Dir = element(2, Ctxt),
     File = filename:join(Dir, "modules-frame.html"),
     {ok, Content0} = file:read_file(File),
-    Content1 = add_toc(Content0, Dir),
+    Content1 = add_toc(App, Content0, Dir),
     Content2 = patch_html(Content1),
     case file:write_file(File, Content2) of
         ok              -> ok;
@@ -62,27 +62,26 @@ patch_html(Html) ->
                   [{return, list}, ungreedy, dotall, global]),
     Html4.
 
--spec add_toc(list(), list()) -> list().
-add_toc(Html, Dir) ->
-    Toc = generate_toc(Dir),
+-spec add_toc(term(), list(), list()) -> list().
+add_toc(App, Html, Dir) ->
+    Toc = generate_toc(Dir, App),
     re:replace(
       Html,
       "(<h2 class=\"indextitle\">Modules</h2>)",
       Toc ++ "\\1",
       [{return, list}]).
 
--spec generate_toc(list()) -> list().
-generate_toc(_Dir) ->
-    OverviewFile = filename:join(code:priv_dir(rebar3_edoc_extensions), "overview.edoc"),
-    {ok, Overview} = file:read_file(OverviewFile),
+-spec generate_toc(list(), term()) -> list().
+generate_toc(Dir, App) ->
+    Overview = get_overview(Dir),
     Lines = re:split(Overview, "\\n", [{return, list}]),
     Titles = [Line ||
               Line <- Lines,
               match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
-    generate_toc1(Titles, 0, []).
+    generate_toc1(Titles, 0, [], App).
 
--spec generate_toc1(list(), integer(), list()) -> list().
-generate_toc1([Title | Rest], CurrentLevel, Result) ->
+-spec generate_toc1(list(), integer(), list(), term()) -> list().
+generate_toc1([Title | Rest], CurrentLevel, Result, App) ->
     ReOpts = [{capture, all_but_first, list}],
     {match, [Equals, Title1]} = re:run(Title, "^(=+) *(.*)", ReOpts),
     Title2 = re:replace(Title1, " *=+$", "", [{return, list}]),
@@ -93,7 +92,7 @@ generate_toc1([Title | Rest], CurrentLevel, Result) ->
     if
         Level =:= CurrentLevel ->
             Result1 = Result ++ ["</li>\n", "<li>", Link],
-            generate_toc1(Rest, CurrentLevel, Result1);
+            generate_toc1(Rest, CurrentLevel, Result1, App);
 
         CurrentLevel =:= 0 andalso
         Level =:= CurrentLevel + 1  ->
@@ -102,21 +101,35 @@ generate_toc1([Title | Rest], CurrentLevel, Result) ->
             Result1 = Result ++ ["<ul>\n",
                                  "<li>", OverviewLink, "</li>\n",
                                  "<li>", Link],
-            generate_toc1(Rest, Level, Result1);
+            generate_toc1(Rest, Level, Result1, App);
 
         Level =:= CurrentLevel + 1 ->
             Result1 = Result ++ ["\n", "<ul>\n", "<li>", Link],
-            generate_toc1(Rest, Level, Result1);
+            generate_toc1(Rest, Level, Result1, App);
 
         Level < CurrentLevel ->
             Result1 = Result ++ ["</li>\n"
                                  "</ul>\n"
                                  || _ <- lists:seq(Level, CurrentLevel - 1)],
             Result2 = Result1 ++ ["</li>\n", "<li>", Link],
-            generate_toc1(Rest, Level, Result2)
+            generate_toc1(Rest, Level, Result2, App)
     end;
-generate_toc1([], CurrentLevel, Result) ->
-    ["<h2 class=\"indextitle\">Documentation</h2>\n",
+generate_toc1([], CurrentLevel, Result, App) ->
+    Name = atom_to_list(App),
+    ["<h2 class=\"indextitle\">", Name, "</h2>\n",
      Result,
      "</li>\n",
      ["</ul>\n" || _ <- lists:seq(0, CurrentLevel - 1)]].
+
+-spec get_overview(list()) -> binary().
+get_overview(Dir) ->
+    OverviewFile = filename:join(Dir, "overview.edoc"),
+    case file:read_file(OverviewFile) of
+        {ok, Overview} ->
+            Overview;
+        _ ->
+          NewDir = code:priv_dir(rebar3_edoc_extensions),
+          OverviewFile2 = filename:join(NewDir, "overview.edoc"),
+          {ok, Overview} = file:read_file(OverviewFile2),
+          Overview
+    end.
