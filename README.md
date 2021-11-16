@@ -25,16 +25,16 @@ For generate `doc` with new style, run:
 $ rebar3 edoc_extensions
 ```
 
-## Notes
-* Used [https://prismjs.com](prismjs.com)
-* Used [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)
-
 ## Behavior
 Use `rebar3 edoc_extensions` instead of `rebar3 edoc` for generate documentation.
 Current plugin will redefine second options of `edoc_opts`: `stylesheet`, `xml_export`, `layout`, `doclet`.
 Make sure that you don't use some config options which are described above - otherwise they will be overwritten by plugin.
 Plugin will use `overview.edoc` by default which placed in `priv` folder of current source code.
 If need to use own custom `overview.edoc`, just create `overview.edoc` in `doc` folder of root application.
+
+## 3d party of `CSS`/`JavaScript`
+* Used [https://prismjs.com](https://prismjs.com)
+* Used [github-markdown-css](https://github.com/sindresorhus/github-markdown-css)
 
 <!-- Badges -->
 [hexpm]: https://hex.pm/packages/rebar3_edoc_extensions
