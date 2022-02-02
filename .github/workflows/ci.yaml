@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: [23.3, 24.1]
+        otp: [23.3, 24.2]
         rebar: [3.17.0]
     steps:
     - uses: actions/checkout@v2
@@ -27,6 +27,28 @@ jobs:
       run: rebar3 format --verify
     - name: Tests
       run: rebar3 test
+    - name: Integration tests
+      run: |
+        REPO=$PWD
+        rebar3 new lib mylib
+        cat >> mylib/rebar.config <<EOF
+
+        {project_plugins, [{rebar3_edoc_extensions, {git, "file://$REPO", {ref, "HEAD"}}}]}.
+        EOF
+        cat mylib/rebar.config
+
+        cd mylib
+        rebar3 edoc
+
+        echo "Checking the files created by the plugin are present"
+        test -f doc/index.html
+        test -f doc/prism.js
+        test -f doc/prism.css
+        test -f doc/github-markdown.css
+
+        echo "Checking HTML files were patched by the plugin"
+        grep -q prism.js doc/overview-summary.html
+        grep -q prism.js doc/modules-frame.html
 
   windows:
     name: "Windows"

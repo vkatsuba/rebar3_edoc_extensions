@@ -30,7 +30,6 @@ run(#doclet_gen{app = App} = Cmd, Ctxt) ->
     {ok, Content0} = file:read_file(File),
     Content1 = add_toc(App, Content0, Dir),
     Content2 = patch_html(Content1),
-    ok = copy_static_files(Dir),
     case file:write_file(File, Content2) of
         ok              -> ok;
         {error, Reason} -> exit({error, Reason})
@@ -65,21 +64,29 @@ patch_html(Html) ->
 
 -spec add_toc(term(), list(), list()) -> list().
 add_toc(App, Html, Dir) ->
-    Toc = generate_toc(Dir, App),
-    re:replace(
-      Html,
-      "(<h2 class=\"indextitle\">Modules</h2>)",
-      Toc ++ "\\1",
-      [{return, list}]).
+    case generate_toc(Dir, App) of
+        undefined ->
+            Html;
+        Toc  ->
+            re:replace(
+              Html,
+              "(<h2 class=\"indextitle\">Modules</h2>)",
+              Toc ++ "\\1",
+              [{return, list}])
+    end.
 
 -spec generate_toc(list(), term()) -> list().
 generate_toc(Dir, App) ->
-    Overview = get_overview(Dir),
-    Lines = re:split(Overview, "\\n", [{return, list}]),
-    Titles = [Line ||
-              Line <- Lines,
-              match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
-    generate_toc1(Titles, 0, [], App).
+    case get_overview(Dir) of
+        undefined ->
+            undefined;
+        Overview ->
+            Lines = re:split(Overview, "\\n", [{return, list}]),
+            Titles = [Line ||
+                      Line <- Lines,
+                      match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
+            generate_toc1(Titles, 0, [], App)
+    end.
 
 -spec generate_toc1(list(), integer(), list(), term()) -> list().
 generate_toc1([Title | Rest], CurrentLevel, Result, App) ->
@@ -122,29 +129,12 @@ generate_toc1([], CurrentLevel, Result, App) ->
      "</li>\n",
      ["</ul>\n" || _ <- lists:seq(0, CurrentLevel - 1)]].
 
--spec get_overview(list()) -> binary().
+-spec get_overview(list()) -> binary() | undefined.
 get_overview(Dir) ->
     OverviewFile = filename:join(Dir, "overview.edoc"),
     case file:read_file(OverviewFile) of
         {ok, Overview} ->
             Overview;
-        _ ->
-          NewDir = code:priv_dir(rebar3_edoc_extensions),
-          OverviewFile2 = filename:join(NewDir, "overview.edoc"),
-          {ok, Overview} = file:read_file(OverviewFile2),
-          Overview
+        {error, _} ->
+            undefined
     end.
-
--spec copy_static_files(list()) -> ok.
-copy_static_files(Dir) ->
-    PrivDir = code:priv_dir(rebar3_edoc_extensions),
-    PrismJSPathPriv = filename:join(PrivDir, "prism.js"),
-    PrismCSSPathPriv = filename:join(PrivDir, "prism.css"),
-    GithubMarkdownCSSPathPriv = filename:join(PrivDir, "github-markdown.css"),
-    PrismJSPath = filename:join(Dir, "prism.js"),
-    PrismCSSPath = filename:join(Dir, "prism.css"),
-    GithubMarkdownCSSPath = filename:join(Dir, "github-markdown.css"),
-    {ok, _} = file:copy(PrismJSPathPriv, PrismJSPath),
-    {ok, _} = file:copy(PrismCSSPathPriv, PrismCSSPath),
-    {ok, _} = file:copy(GithubMarkdownCSSPathPriv, GithubMarkdownCSSPath),
-    ok.
