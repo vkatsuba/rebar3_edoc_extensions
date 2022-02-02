@@ -64,21 +64,29 @@ patch_html(Html) ->
 
 -spec add_toc(term(), list(), list()) -> list().
 add_toc(App, Html, Dir) ->
-    Toc = generate_toc(Dir, App),
-    re:replace(
-      Html,
-      "(<h2 class=\"indextitle\">Modules</h2>)",
-      Toc ++ "\\1",
-      [{return, list}]).
+    case generate_toc(Dir, App) of
+        undefined ->
+            Html;
+        Toc  ->
+            re:replace(
+              Html,
+              "(<h2 class=\"indextitle\">Modules</h2>)",
+              Toc ++ "\\1",
+              [{return, list}])
+    end.
 
 -spec generate_toc(list(), term()) -> list().
 generate_toc(Dir, App) ->
-    Overview = get_overview(Dir),
-    Lines = re:split(Overview, "\\n", [{return, list}]),
-    Titles = [Line ||
-              Line <- Lines,
-              match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
-    generate_toc1(Titles, 0, [], App).
+    case get_overview(Dir) of
+        undefined ->
+            undefined;
+        Overview ->
+            Lines = re:split(Overview, "\\n", [{return, list}]),
+            Titles = [Line ||
+                      Line <- Lines,
+                      match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
+            generate_toc1(Titles, 0, [], App)
+    end.
 
 -spec generate_toc1(list(), integer(), list(), term()) -> list().
 generate_toc1([Title | Rest], CurrentLevel, Result, App) ->
@@ -121,15 +129,12 @@ generate_toc1([], CurrentLevel, Result, App) ->
      "</li>\n",
      ["</ul>\n" || _ <- lists:seq(0, CurrentLevel - 1)]].
 
--spec get_overview(list()) -> binary().
+-spec get_overview(list()) -> binary() | undefined.
 get_overview(Dir) ->
     OverviewFile = filename:join(Dir, "overview.edoc"),
     case file:read_file(OverviewFile) of
         {ok, Overview} ->
             Overview;
-        _ ->
-          NewDir = code:priv_dir(rebar3_edoc_extensions),
-          OverviewFile2 = filename:join(NewDir, "overview.edoc"),
-          {ok, Overview} = file:read_file(OverviewFile2),
-          Overview
+        {error, _} ->
+            undefined
     end.
