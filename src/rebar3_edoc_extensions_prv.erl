@@ -11,12 +11,14 @@
 
 -define(PROVIDER, edoc).
 -define(DEPS, [compile]).
+-define(GITHUB_URL_BASE, "https://raw.githubusercontent.com").
+%% The `++` is useless but it works around a bug in `rebar3 _format`.
 -define(GITHUB_MARKDOWN_CSS_URL,
-        "https://raw.githubusercontent.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css").
+        ?GITHUB_URL_BASE ++ "/sindresorhus/github-markdown-css/gh-pages/github-markdown.css").
 -define(PRISMJS_CORE_URL,
-        "https://raw.githubusercontent.com/PrismJS/prism/$VERSION/components/prism-core.min.js").
+        ?GITHUB_URL_BASE ++ "/PrismJS/prism/$VERSION/components/prism-core.min.js").
 -define(PRISMJS_THEME_URL,
-        "https://raw.githubusercontent.com/PrismJS/prism/$VERSION/themes/prism.min.css").
+        ?GITHUB_URL_BASE ++ "/PrismJS/prism/$VERSION/themes/prism.min.css").
 -define(PRISMJS_DEFAULT_VERSION, "v1.26.0").
 -define(PRISMJS_DEFAULT_THEME, "default").
 -define(PRISMJS_DEFAULT_LANGS, ["erlang", "elixir"]).
@@ -40,7 +42,8 @@ init(State) ->
                           {opts, []},        % list of options understood by the plugin
                           {short_desc, "Override \"edoc\" command to improve EDoc documentation"},
                           {desc,
-                           "The EDoc-generated documentation is improved with overview ToC, more modern style and syntax highlighting"}]),
+                           "The EDoc-generated documentation is improved "
+                           "with overview ToC, more modern style and syntax highlighting"}]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
@@ -49,40 +52,37 @@ do(State) ->
     PrismVersion = rebar_state:get(State, prismjs_version, ?PRISMJS_DEFAULT_VERSION),
     PrismTheme = rebar_state:get(State, prismjs_theme, ?PRISMJS_DEFAULT_THEME),
     PrismLangs = rebar_state:get(State, prismjs_languages, ?PRISMJS_DEFAULT_LANGS),
-    Ret = try
-              lists:foldl(fun(AppInfo, ok) ->
-                             AppName =
-                                 rebar_utils:to_list(
-                                     rebar_app_info:name(AppInfo)),
-                             AppDir = rebar_app_info:dir(AppInfo),
-                             DocDir = filename:join(AppDir, "doc"),
-                             try
-                                 case file:make_dir(DocDir) of
-                                     ok ->
-                                         ok;
-                                     {error, eexist} ->
-                                         ok
-                                 end,
-                                 {ok, _} = application:ensure_all_started(ssl),
-                                 {ok, _} = application:ensure_all_started(inets),
-                                 download_github_markdown_css(AppName, DocDir),
-                                 download_prismjs(AppName,
-                                                  DocDir,
-                                                  PrismVersion,
-                                                  PrismTheme,
-                                                  PrismLangs),
-                                 ok
-                             catch
-                                 _Class:Reason:_Stacktrace ->
-                                     throw({app_failed, AppName, Reason})
-                             end
-                          end,
-                          ok,
-                          ProjectApps)
-          catch
-              {app_failed, AppName1, Reason1} ->
-                  {app_failed, AppName1, Reason1}
-          end,
+    Ret = lists:foldl(fun (AppInfo, ok) ->
+                              AppName =
+                                  rebar_utils:to_list(
+                                      rebar_app_info:name(AppInfo)),
+                              AppDir = rebar_app_info:dir(AppInfo),
+                              DocDir = filename:join(AppDir, "doc"),
+                              try
+                                  case file:make_dir(DocDir) of
+                                      ok ->
+                                          ok;
+                                      {error, eexist} ->
+                                          ok
+                                  end,
+                                  {ok, _} = application:ensure_all_started(ssl),
+                                  {ok, _} = application:ensure_all_started(inets),
+                                  download_github_markdown_css(AppName, DocDir),
+                                  download_prismjs(AppName,
+                                                   DocDir,
+                                                   PrismVersion,
+                                                   PrismTheme,
+                                                   PrismLangs),
+                                  ok
+                              catch
+                                  _Class:Reason:_Stacktrace ->
+                                      {app_failed, AppName, Reason}
+                              end;
+                          (_, Error) ->
+                              Error
+                      end,
+                      ok,
+                      ProjectApps),
     State1 =
         case Ret of
             ok ->
