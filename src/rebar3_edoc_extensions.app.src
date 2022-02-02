@@ -1,6 +1,7 @@
+%% vim:ft=erlang:sw=2:et:
 {application,
  rebar3_edoc_extensions,
- [{description, "A pugin for extensions of EDoc"},
+ [{description, "Rebar 3 plugin bringin improvements to EDoc"},
   {vsn, git},
   {applications, [kernel, stdlib]},
   {env, []},
