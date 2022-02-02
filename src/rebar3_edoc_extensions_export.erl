@@ -3,6 +3,7 @@
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2021-2022 Viacheslav Katsuba.
 %%
 
 -module(rebar3_edoc_extensions_export).
@@ -15,14 +16,14 @@
 
 -export(['#root#'/4, '#element#'/5, '#text#'/1]).
 
--spec '#xml-inheritance#'() -> list().
+-spec '#xml-inheritance#'() -> [].
 '#xml-inheritance#'() -> [].
 
 -spec '#text#'(term()) -> term().
 '#text#'(Text) ->
     xmerl_html:'#text#'(Text).
 
--spec '#root#'(term(), term(), term(), term()) -> term().
+-spec '#root#'(term(), term(), [], term()) -> term().
 '#root#'(Data, Attrs, [], E) ->
     xmerl_html:'#root#'(Data, Attrs, [], E).
 

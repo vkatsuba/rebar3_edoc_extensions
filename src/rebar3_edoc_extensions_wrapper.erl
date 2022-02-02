@@ -3,6 +3,7 @@
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2021-2022 Viacheslav Katsuba.
 %%
 
 -module(rebar3_edoc_extensions_wrapper).
@@ -18,7 +19,7 @@
 module(Element, Options) ->
     edoc_layout:module(Element, Options).
 
--spec overview(term(), term()) -> term().
+-spec overview(term(), term()) -> [binary() | list()].
 overview(Element, Options) ->
     Overview = edoc_layout:overview(Element, Options),
     patch_html(Overview).
@@ -27,7 +28,7 @@ overview(Element, Options) ->
 type(Element) ->
     edoc_layout:type(Element).
 
--spec run(list(), term()) -> list().
+-spec run(#doclet_gen{}, tuple()) -> ok | no_return().
 run(#doclet_gen{app = App} = Cmd, Ctxt) ->
     ok = edoc_doclet:run(Cmd, Ctxt),
     %% Ctxt is a #context{} record in Erlang 23 and #doclet_context{} in Erlang
@@ -69,7 +70,7 @@ patch_html(Html) ->
                   [{return, list}, ungreedy, dotall, global]),
     Html4.
 
--spec add_toc(term(), list(), list()) -> list().
+-spec add_toc(term(), binary(), list()) -> list().
 add_toc(App, Html, Dir) ->
     case generate_toc(Dir, App) of
         undefined ->
@@ -82,7 +83,7 @@ add_toc(App, Html, Dir) ->
               [{return, list}])
     end.
 
--spec generate_toc(list(), term()) -> list().
+-spec generate_toc([binary() | list()], term()) -> [binary() | list()] | undefined.
 generate_toc(Dir, App) ->
     case get_overview(Dir) of
         undefined ->
@@ -95,7 +96,7 @@ generate_toc(Dir, App) ->
             generate_toc1(Titles, 0, [], App)
     end.
 
--spec generate_toc1(list(), integer(), list(), term()) -> list().
+-spec generate_toc1([binary() | list()], integer(), list(), term()) -> [binary() | list()].
 generate_toc1([Title | Rest], CurrentLevel, Result, App) ->
     ReOpts = [{capture, all_but_first, list}],
     {match, [Equals, Title1]} = re:run(Title, "^(=+) *(.*)", ReOpts),
