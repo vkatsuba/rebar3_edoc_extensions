@@ -3,6 +3,7 @@
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
 %% Copyright (c) 2021-2022 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2021-2022 Viacheslav Katsuba.
 %%
 
 -define(BODY_CLASSES, "markdown-body language-erlang").
