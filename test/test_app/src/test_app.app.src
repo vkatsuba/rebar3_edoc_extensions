@@ -1,0 +1,8 @@
+{application,
+ test_app,
+ [{description, "Test Application"},
+  {vsn, git},
+  {applications, []},
+  {env, []},
+  {licenses, []},
+  {links, []}]}.
