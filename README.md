@@ -2,6 +2,8 @@
 
 [![Hex.pm Version][hexpm version]][hexpm]
 [![Hex.pm Downloads][hexpm downloads]][hexpm]
+[![Hex.pm Documentation][hexdocs documentation]][hexdocs]
+[![Erlang Versions][erlang version badge]][gh]
 [![Build Status][gh badge]][gh]
 
 `rebar3_edoc_extensions` is a Rebar 3 plugin bringing improvements to
@@ -76,5 +78,8 @@ $ rebar3 edoc
 [hexpm]: https://hex.pm/packages/rebar3_edoc_extensions
 [hexpm version]: https://img.shields.io/hexpm/v/rebar3_edoc_extensions.svg?style=flat-square
 [hexpm downloads]: https://img.shields.io/hexpm/dt/rebar3_edoc_extensions.svg?style=flat-square
+[hexdocs documentation]: https://img.shields.io/badge/hex-docs-purple.svg?style=flat-square
+[hexdocs]: https://hexdocs.pm/rebar3_edoc_extensions
 [gh]: https://github.com/vkatsuba/rebar3_edoc_extensions/actions/workflows/ci.yaml
 [gh badge]: https://img.shields.io/github/workflow/status/vkatsuba/rebar3_edoc_extensions/CI?style=flat-square
+[erlang version badge]: https://img.shields.io/badge/erlang-23.X%20to%2024.X-blue.svg?style=flat-square
