@@ -10,30 +10,36 @@
 
 -include_lib("edoc/include/edoc_doclet.hrl").
 
+%% doclet's Ctxt is a #context{} record in Erlang 23 and #doclet_context{} in
+%% Erlang 24+.
+-if(?OTP_RELEASE >= 24).
+-define(RECORD, doclet_context).
+-else.
+-define(RECORD, context).
+-endif.
+
 -include("rebar3_edoc_extensions.hrl").
 
--export([module/2, overview/2, type/1]).
+%% `edoc_layout` API.
+-export([module/2, overview/2]).
+%% `edoc_doclet` API.
 -export([run/2]).
 
--spec module(term(), term()) -> term().
+-spec module(term(), list()) -> term().
 module(Element, Options) ->
-    edoc_layout:module(Element, Options).
+    LayoutMod = get_chained_mod(layout, Options),
+    LayoutMod:module(Element, Options).
 
--spec overview(term(), term()) -> [binary() | list()].
+-spec overview(term(), list()) -> [binary() | list()].
 overview(Element, Options) ->
-    Overview = edoc_layout:overview(Element, Options),
+    LayoutMod = get_chained_mod(layout, Options),
+    Overview = LayoutMod:overview(Element, Options),
     patch_html(Overview).
 
--spec type(term()) -> term().
-type(Element) ->
-    edoc_layout:type(Element).
-
--spec run(#doclet_gen{}, tuple()) -> ok | no_return().
-run(#doclet_gen{app = App} = Cmd, Ctxt) ->
-    ok = edoc_doclet:run(Cmd, Ctxt),
-    %% Ctxt is a #context{} record in Erlang 23 and #doclet_context{} in Erlang
-    %% 24. The directory is the second field in that record in both cases.
-    Dir = element(2, Ctxt),
+-spec run(#doclet_gen{}, #?RECORD{}) -> ok | no_return().
+run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
+    DocletMod = get_chained_mod(doclet, Ctxt),
+    ok = DocletMod:run(Cmd, Ctxt),
     File = filename:join(Dir, "modules-frame.html"),
     {ok, Content0} = file:read_file(File),
     Content1 = add_toc(App, Content0, Dir),
@@ -42,6 +48,19 @@ run(#doclet_gen{app = App} = Cmd, Ctxt) ->
         ok              -> ok;
         {error, Reason} -> exit({error, Reason})
     end.
+
+-spec get_chained_mod(Option, Options | Ctxt) -> Value when
+      Option :: doclet | layout,
+      Options :: [tuple()],
+      Ctxt :: #?RECORD{},
+      Value :: any().
+get_chained_mod(doclet, Options) when is_list(Options) ->
+    proplists:get_value(chained_doclet, Options);
+get_chained_mod(layout, Options) when is_list(Options) ->
+    proplists:get_value(chained_layout, Options);
+get_chained_mod(Option, Ctxt) when is_tuple(Ctxt) ->
+    #?RECORD{opts = Options} = Ctxt,
+    get_chained_mod(Option, Options).
 
 -spec patch_html(list()) -> list().
 patch_html(Html) ->

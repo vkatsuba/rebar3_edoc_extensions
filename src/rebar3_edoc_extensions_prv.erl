@@ -19,6 +19,14 @@
               {rebar_state, add_provider, 2},
               {rebar_state, command_parsed_args, 1}]).
 
+-if(?OTP_RELEASE >= 24).
+-dialyzer({no_underspecs, [chain_edoc_backends/1,
+                           chain_edoc_backends/2]}).
+-else.
+-dialyzer({nowarn_function, [chain_edoc_backends/1,
+                             chain_edoc_backends/2]}).
+-endif.
+
 -define(PROVIDER, edoc).
 -define(DEPS, [compile]).
 -define(GITHUB_URL_BASE, "https://raw.githubusercontent.com").
@@ -106,12 +114,7 @@ do(State) ->
     State1 =
         case Ret of
             ok ->
-                %% FIXME: Clear conflicting options.
-                EdocOpts1 =
-                    [{xml_export, rebar3_edoc_extensions_export},
-                     {layout, rebar3_edoc_extensions_wrapper},
-                     {doclet, rebar3_edoc_extensions_wrapper}
-                     | EdocOptsWithCSS],
+                EdocOpts1 = chain_edoc_backends(EdocOptsWithCSS),
                 ?DEBUG("Overriden edoc options: ~p", [EdocOpts1]),
                 rebar_state:set(State, edoc_opts, EdocOpts1);
             {app_failed, AppName, Reason} ->
@@ -267,3 +270,48 @@ generate_wrapping_css(DocDir, Stylesheets) ->
     Filename = filename:join(DocDir, ?GENERATED_CSS),
     ok = file:write_file(Filename, Content),
     ok.
+
+-spec chain_edoc_backends(EdocOpts) -> EdocOpts when
+      EdocOpts :: [tuple()].
+chain_edoc_backends(EdocOpts) ->
+    Options = [xml_export,
+               layout,
+               doclet],
+    chain_edoc_backends(Options, EdocOpts).
+
+-spec chain_edoc_backends(Options, EdocOpts) -> EdocOpts when
+      Options :: [xml_export | doclet | layout],
+      EdocOpts :: [tuple()].
+chain_edoc_backends([xml_export | Rest], EdocOpts) ->
+    %% For `xml_export', we override the module, regardless of what the user
+    %% provided. I don't know if we can support module chaining here as there
+    %% is no options passed to the module functions. Perhaps we could use a
+    %% `persistent_term', but anyway, I don't have a use case currently to
+    %% test this.
+    EdocOpts1 = lists:keystore(
+                  xml_export, 1, EdocOpts,
+                  {xml_export, rebar3_edoc_extensions_export}),
+    chain_edoc_backends(Rest, EdocOpts1);
+chain_edoc_backends([Option | Rest], EdocOpts)
+  when Option =:= doclet orelse Option =:= layout ->
+    %% For d`doclet' and `layout', we override the user-configured module by
+    %% our own. However, we store the former in another option. When
+    %% processing the documentation, our own module will called the
+    %% user-configured module and patch its output.
+    %%
+    %% If there is no user-configured module, we default to `edoc_doclet' and
+    %% `edoc_layout'.
+    DefaultMod = list_to_atom(io_lib:format("edoc_~s", [Option])),
+    ChainedMod = proplists:get_value(Option, EdocOpts, DefaultMod),
+    ChainedOption = list_to_atom(
+                      io_lib:format("chained_~s", [Option])),
+    EdocOpts1 = lists:keystore(
+                  Option, 1, EdocOpts,
+                  {ChainedOption, ChainedMod}),
+
+    EdocOpts2 = lists:keystore(
+                  Option, 1, EdocOpts1,
+                  {Option, rebar3_edoc_extensions_wrapper}),
+    chain_edoc_backends(Rest, EdocOpts2);
+chain_edoc_backends([], EdocOpts) ->
+    EdocOpts.
