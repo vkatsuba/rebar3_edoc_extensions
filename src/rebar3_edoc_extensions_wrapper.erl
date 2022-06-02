@@ -55,9 +55,9 @@ run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
       Ctxt :: #?RECORD{},
       Value :: any().
 get_chained_mod(doclet, Options) when is_list(Options) ->
-    proplists:get_value(chained_doclet, Options);
+    proplists:get_value(chained_doclet, Options, edoc_doclet);
 get_chained_mod(layout, Options) when is_list(Options) ->
-    proplists:get_value(chained_layout, Options);
+    proplists:get_value(chained_layout, Options, edoc_layout);
 get_chained_mod(Option, Ctxt) when is_tuple(Ctxt) ->
     #?RECORD{opts = Options} = Ctxt,
     get_chained_mod(Option, Options).
