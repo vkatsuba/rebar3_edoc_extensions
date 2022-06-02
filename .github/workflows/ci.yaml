@@ -30,7 +30,7 @@ jobs:
     - name: Tests
       env:
         ERL_FLAGS: "-enable-feature all"
-      run: rebar3 test
+      run: env DIAGNOSTIC=1 rebar3 test
     - name: Integration tests
       env:
         ERL_FLAGS: "-enable-feature all"

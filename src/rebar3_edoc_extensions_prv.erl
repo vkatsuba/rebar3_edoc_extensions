@@ -9,6 +9,8 @@
 %%% @doc Plugin provider for rebar3 rebar3_edoc_extensions.
 -module(rebar3_edoc_extensions_prv).
 
+-include("rebar3_edoc_extensions.hrl").
+
 -export([init/1, do/1, format_error/1]).
 
 -ignore_xref([do/1,
@@ -30,6 +32,7 @@
 -define(PRISMJS_DEFAULT_VERSION, "v1.26.0").
 -define(PRISMJS_DEFAULT_THEME, "default").
 -define(PRISMJS_DEFAULT_LANGS, ["erlang", "elixir"]).
+-define(GENERATED_CSS, "edoc-extensions.css").
 -define(DEBUG(Str, Args), rebar_log:log(debug, Str, Args)).
 -define(INFO(Str, Args), rebar_log:log(info, Str, Args)).
 -define(WARN(Str, Args), rebar_log:log(warn, Str, Args)).
@@ -56,6 +59,12 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
+    EdocOpts = rebar_state:get(State, edoc_opts, []),
+    DirOpt = proplists:get_value(dir, EdocOpts, "doc"),
+    EdocOptsWithCSS = lists:keystore(
+                        stylesheet, 1, EdocOpts,
+                        {stylesheet, ?GENERATED_CSS}),
+
     ProjectApps = rebar_state:project_apps(State),
     PrismVersion = rebar_state:get(State, prismjs_version, ?PRISMJS_DEFAULT_VERSION),
     PrismTheme = rebar_state:get(State, prismjs_theme, ?PRISMJS_DEFAULT_THEME),
@@ -65,7 +74,7 @@ do(State) ->
                                   rebar_utils:to_list(
                                       rebar_app_info:name(AppInfo)),
                               AppDir = rebar_app_info:dir(AppInfo),
-                              DocDir = filename:join(AppDir, "doc"),
+                              DocDir = filename:join(AppDir, DirOpt),
                               try
                                   case file:make_dir(DocDir) of
                                       ok ->
@@ -81,6 +90,9 @@ do(State) ->
                                                    PrismVersion,
                                                    PrismTheme,
                                                    PrismLangs),
+
+                                  ok = prepare_stylesheets(DocDir, EdocOpts),
+
                                   ok
                               catch
                                   _Class:Reason:_Stacktrace ->
@@ -94,14 +106,12 @@ do(State) ->
     State1 =
         case Ret of
             ok ->
-                EdocOpts = rebar_state:get(State, edoc_opts, []),
                 %% FIXME: Clear conflicting options.
                 EdocOpts1 =
-                    [{stylesheet, "github-markdown.css"},
-                     {xml_export, rebar3_edoc_extensions_export},
+                    [{xml_export, rebar3_edoc_extensions_export},
                      {layout, rebar3_edoc_extensions_wrapper},
                      {doclet, rebar3_edoc_extensions_wrapper}
-                     | EdocOpts],
+                     | EdocOptsWithCSS],
                 ?DEBUG("Overriden edoc options: ~p", [EdocOpts1]),
                 rebar_state:set(State, edoc_opts, EdocOpts1);
             {app_failed, AppName, Reason} ->
@@ -228,4 +238,32 @@ download(Url, Filename) ->
     HTTPOptions = [{ssl, [{verify, verify_none}]}],
     Options = [{stream, Filename}],
     {ok, saved_to_file} = httpc:request(get, {Url, []}, HTTPOptions, Options, default),
+    ok.
+
+-spec prepare_stylesheets(DocDir, EdocOpts) -> ok when
+      DocDir :: file:filename(),
+      EdocOpts :: [tuple()].
+prepare_stylesheets(DocDir, EdocOpts) ->
+    %% We first want to import the two CSS files we downloaded. We then import
+    %% the user-provided CSS file, if any.
+    Stylesheets0 = ["github-markdown.css",
+                    "prism.css"],
+    Stylesheets = case proplists:get_value(stylesheet, EdocOpts) of
+                      undefined  -> Stylesheets0;
+                      Stylesheet -> Stylesheets0 ++ [Stylesheet]
+                  end,
+    generate_wrapping_css(DocDir, Stylesheets).
+
+-spec generate_wrapping_css(DocDir, Stylesheets) -> ok when
+      DocDir :: file:filename(),
+      Stylesheets :: [string()].
+generate_wrapping_css(DocDir, Stylesheets) ->
+    %% We generate a CSS file to import everything (including the
+    %% user-specified stylesheet) and write it to the doc directory. This
+    %% generated CSS file is the one passed in EDoc options.
+    Imports = [io_lib:format("@import url(\"~ts\");~n", [Url])
+               || Url <- Stylesheets],
+    Content = Imports ++ "\n" ?ADDITIONAL_STYLE "\n",
+    Filename = filename:join(DocDir, ?GENERATED_CSS),
+    ok = file:write_file(Filename, Content),
     ok.

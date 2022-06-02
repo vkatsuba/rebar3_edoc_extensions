@@ -45,15 +45,8 @@ run(#doclet_gen{app = App} = Cmd, Ctxt) ->
 
 -spec patch_html(list()) -> list().
 patch_html(Html) ->
-    Html1 = re:replace(
-                  Html,
-                  "</head>",
-                  ?SYNTAX_HIGHLIGHTING_CSS "\n"
-                  ?ADDITIONAL_STYLE "\n"
-                  "</head>",
-                  [{return, list}]),
     Html2 = re:replace(
-                  Html1,
+                  Html,
                   "<body +bgcolor=\"[^\"]*\">",
                   "<body class=\"" ?BODY_CLASSES "\">\n"
                   ?SYNTAX_HIGHLIGHTING_JS,
