@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        otp: [23.3, 24.2]
+        otp: [23, 24, 25]
         rebar: [3.18.0]
     steps:
     - uses: actions/checkout@v2
@@ -24,10 +24,16 @@ jobs:
         otp-version: ${{matrix.otp}}
         rebar3-version: ${{matrix.rebar}}
     - name: Format check
+      env:
+        ERL_FLAGS: "-enable-feature all"
       run: rebar3 format --verify
     - name: Tests
+      env:
+        ERL_FLAGS: "-enable-feature all"
       run: rebar3 test
     - name: Integration tests
+      env:
+        ERL_FLAGS: "-enable-feature all"
       run: |
         REPO=$PWD
         rebar3 new lib mylib
@@ -55,7 +61,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        otp: [23.3, 24.2]
+        otp: [23, 24, 25]
         rebar: [3.18.0]
     steps:
     - uses: actions/checkout@v2
@@ -64,4 +70,6 @@ jobs:
         otp-version: ${{matrix.otp}}
         rebar3-version: ${{matrix.rebar}}
     - name: Tests
+      env:
+        ERL_FLAGS: "-enable-feature all"
       run: rebar3 test

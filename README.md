@@ -82,4 +82,4 @@ $ rebar3 edoc
 [hexdocs]: https://hexdocs.pm/rebar3_edoc_extensions
 [gh]: https://github.com/vkatsuba/rebar3_edoc_extensions/actions/workflows/ci.yaml
 [gh badge]: https://img.shields.io/github/workflow/status/vkatsuba/rebar3_edoc_extensions/CI?style=flat-square
-[erlang version badge]: https://img.shields.io/badge/erlang-23.X%20to%2024.X-blue.svg?style=flat-square
+[erlang version badge]: https://img.shields.io/badge/erlang-23.X%20to%2025.X-blue.svg?style=flat-square
