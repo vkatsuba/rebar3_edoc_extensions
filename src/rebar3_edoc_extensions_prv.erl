@@ -41,10 +41,6 @@
 -define(PRISMJS_DEFAULT_THEME, "default").
 -define(PRISMJS_DEFAULT_LANGS, ["erlang", "elixir"]).
 -define(GENERATED_CSS, "edoc-extensions.css").
--define(DEBUG(Str, Args), rebar_log:log(debug, Str, Args)).
--define(INFO(Str, Args), rebar_log:log(info, Str, Args)).
--define(WARN(Str, Args), rebar_log:log(warn, Str, Args)).
--define(ERROR(Str, Args), rebar_log:log(error, Str, Args)).
 
 %% =============================================================================
 %% Public API

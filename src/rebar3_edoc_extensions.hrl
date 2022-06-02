@@ -72,3 +72,7 @@ code[class*=\"language-\"] {
 }").
 -define(SYNTAX_HIGHLIGHTING_JS, "<script src=\"prism.js\"></script>").
 -define(LANG_REGEX, "none|elixir|erlang").
+-define(DEBUG(Str, Args), rebar_log:log(debug, Str, Args)).
+-define(INFO(Str, Args), rebar_log:log(info, Str, Args)).
+-define(WARN(Str, Args), rebar_log:log(warn, Str, Args)).
+-define(ERROR(Str, Args), rebar_log:log(error, Str, Args)).

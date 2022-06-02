@@ -54,13 +54,24 @@ run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
       Options :: [tuple()],
       Ctxt :: #?RECORD{},
       Value :: any().
-get_chained_mod(doclet, Options) when is_list(Options) ->
-    proplists:get_value(chained_doclet, Options, edoc_doclet);
-get_chained_mod(layout, Options) when is_list(Options) ->
-    proplists:get_value(chained_layout, Options, edoc_layout);
+get_chained_mod(doclet = Option, Options) when is_list(Options) ->
+    get_chained_mod(proplists:get_value(chained_doclet, Options), Option, edoc_doclet);
+get_chained_mod(layout = Option, Options) when is_list(Options) ->
+    get_chained_mod(proplists:get_value(chained_layout, Options), Option, edoc_layout);
 get_chained_mod(Option, Ctxt) when is_tuple(Ctxt) ->
     #?RECORD{opts = Options} = Ctxt,
     get_chained_mod(Option, Options).
+
+-spec get_chained_mod(Option1, Option2, DefaultOption) -> Value when
+      Option1 :: atom(),
+      Option2 :: doclet | layout,
+      DefaultOption :: atom(),
+      Value :: atom().
+get_chained_mod(undefined, Option, DefaultOption) ->
+    ?DEBUG("Used default option '~p' value for '~p'", [DefaultOption, Option]),
+    DefaultOption;
+get_chained_mod(Option, _, _) ->
+    Option.
 
 -spec patch_html(list()) -> list().
 patch_html(Html) ->
