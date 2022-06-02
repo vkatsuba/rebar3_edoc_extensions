@@ -63,11 +63,12 @@ test_app(_Config) ->
     {Res, _} = edoc(State),
     {ok, Bin} = file:read_file("test_app/doc/test.html"),
     ?assertEqual(ok, Res),
+    ?assertEqual(true, filelib:is_file("test_app/doc/edoc-extensions.css")),
     ?assertEqual(true, filelib:is_file("test_app/doc/prism.js")),
     ?assertEqual(true, filelib:is_file("test_app/doc/prism.css")),
     ?assertEqual(true, filelib:is_file("test_app/doc/github-markdown.css")),
     ?assertEqual(true, nomatch /= re:run(Bin, "language-erlang")),
-    ?assertEqual(true, nomatch /= re:run(Bin, "prism.js")).
+    ?assertEqual(true, nomatch /= re:run(Bin, "edoc-extensions.css")).
 
 -spec command(list()) -> ok | no_return().
 command(_Config) ->

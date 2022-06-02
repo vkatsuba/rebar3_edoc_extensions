@@ -28,11 +28,6 @@
     xmerl_html:'#root#'(Data, Attrs, [], E).
 
 -spec '#element#'(term(), term(), term(), term(), term()) -> term().
-'#element#'(head = Tag, Data, Attrs, Parents, E) ->
-    Data1 = [Data,
-             ?SYNTAX_HIGHLIGHTING_CSS,
-             ?ADDITIONAL_STYLE],
-    xmerl_html:'#element#'(Tag, Data1, Attrs, Parents, E);
 '#element#'(body = Tag, Data, _Attrs, Parents, E) ->
     Data1 = [?SYNTAX_HIGHLIGHTING_JS,
              Data],
