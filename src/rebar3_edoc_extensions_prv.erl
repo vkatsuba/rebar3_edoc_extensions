@@ -20,11 +20,11 @@
               {rebar_state, command_parsed_args, 1}]).
 
 -if(?OTP_RELEASE >= 24).
--dialyzer({no_underspecs, [chain_edoc_backends/1,
-                           chain_edoc_backends/2]}).
+-dialyzer({no_underspecs, [override_edoc_backends/1,
+                           override_edoc_backends/2]}).
 -else.
--dialyzer({nowarn_function, [chain_edoc_backends/1,
-                             chain_edoc_backends/2]}).
+-dialyzer({nowarn_function, [override_edoc_backends/1,
+                             override_edoc_backends/2]}).
 -endif.
 
 -define(PROVIDER, edoc).
@@ -55,6 +55,7 @@ init(State) ->
                           {deps, ?DEPS},     % The list of dependencies
                           {example, "rebar3 edoc"}, % How to use the plugin
                           {opts, []},        % list of options understood by the plugin
+                          {profiles, [docs]},
                           {short_desc, "Override \"edoc\" command to improve EDoc documentation"},
                           {desc,
                            "The EDoc-generated documentation is improved "
@@ -65,59 +66,126 @@ init(State) ->
 do(State) ->
     EdocOpts = rebar_state:get(State, edoc_opts, []),
     DirOpt = proplists:get_value(dir, EdocOpts, "doc"),
-    EdocOptsWithCSS = lists:keystore(
-                        stylesheet, 1, EdocOpts,
-                        {stylesheet, ?GENERATED_CSS}),
+    GlobalUserStylesheet = proplists:get_value(stylesheet, EdocOpts),
 
     ProjectApps = rebar_state:project_apps(State),
     PrismVersion = rebar_state:get(State, prismjs_version, ?PRISMJS_DEFAULT_VERSION),
     PrismTheme = rebar_state:get(State, prismjs_theme, ?PRISMJS_DEFAULT_THEME),
     PrismLangs = rebar_state:get(State, prismjs_languages, ?PRISMJS_DEFAULT_LANGS),
-    Ret = lists:foldl(fun (AppInfo, ok) ->
-                              AppName =
-                                  rebar_utils:to_list(
-                                      rebar_app_info:name(AppInfo)),
-                              AppDir = rebar_app_info:dir(AppInfo),
-                              DocDir = filename:join(AppDir, DirOpt),
-                              try
-                                  case file:make_dir(DocDir) of
-                                      ok ->
-                                          ok;
-                                      {error, eexist} ->
-                                          ok
-                                  end,
-                                  {ok, _} = application:ensure_all_started(ssl),
-                                  {ok, _} = application:ensure_all_started(inets),
-                                  download_github_markdown_css(AppName, DocDir),
-                                  download_prismjs(AppName,
-                                                   DocDir,
-                                                   PrismVersion,
-                                                   PrismTheme,
-                                                   PrismLangs),
+    Ret = lists:foldl(
+            fun
+                (_, {app_failed, _, _, _} = Error) ->
+                    Error;
+                (AppInfo, {StateAcc, NeedsTwoPasses0}) ->
+                    AppName = rebar_app_info:name(AppInfo),
+                    AppDir = rebar_app_info:dir(AppInfo),
+                    try
+                        DocDir = filename:join(AppDir, DirOpt),
+                        case file:make_dir(DocDir) of
+                            ok              -> ok;
+                            {error, eexist} -> ok
+                        end,
+                        {ok, _} = application:ensure_all_started(ssl),
+                        {ok, _} = application:ensure_all_started(inets),
+                        download_github_markdown_css(AppName, DocDir),
+                        download_prismjs(
+                          AppName, DocDir,
+                          PrismVersion, PrismTheme, PrismLangs),
 
-                                  ok = prepare_stylesheets(DocDir, EdocOpts),
+                        AppOpts = rebar_app_info:opts(AppInfo),
+                        AppEdocOpts = rebar_opts:get(AppOpts, edoc_opts, []),
+                        ?DEBUG(
+                           "Initial app edoc options for ~s: ~p",
+                           [AppName, AppEdocOpts]),
 
-                                  ok
-                              catch
-                                  _Class:Reason:_Stacktrace ->
-                                      {app_failed, AppName, Reason}
-                              end;
-                          (_, Error) ->
-                              Error
-                      end,
-                      ok,
-                      ProjectApps),
-    State1 =
-        case Ret of
-            ok ->
-                EdocOpts1 = chain_edoc_backends(EdocOptsWithCSS),
-                ?DEBUG("Overriden edoc options: ~p", [EdocOpts1]),
-                rebar_state:set(State, edoc_opts, EdocOpts1);
-            {app_failed, AppName, Reason} ->
-                ?ERROR("Failed to fetch JS+CSS resources for ~ts: ~p", [AppName, Reason]),
-                State
-        end,
-    rebar_prv_edoc:do(State1).
+                        NeedsTwoPasses1 = are_edoc_backends_non_default(
+                                            AppEdocOpts),
+
+                        %% Generate the wrapping stylesheet.
+                        UserStylesheet = proplists:get_value(
+                                           stylesheet, AppEdocOpts,
+                                           GlobalUserStylesheet),
+                        ok = prepare_stylesheets(DocDir, UserStylesheet),
+
+                        AppEdocOpts1 = lists:keystore(
+                                         stylesheet, 1, AppEdocOpts,
+                                         {stylesheet, ?GENERATED_CSS}),
+
+                        %% Override backend modules.
+                        AppEdocOpts2 = override_edoc_backends(AppEdocOpts1),
+
+                        AppOpts1 = rebar_opts:set(
+                                     AppOpts, edoc_opts, AppEdocOpts2),
+                        AppInfo1 = rebar_app_info:opts(AppInfo, AppOpts1),
+
+                        StateAcc1 = rebar_state:project_apps(
+                                      StateAcc, AppInfo1),
+                        ?DEBUG(
+                           "Overriden app edoc options for ~s: ~p",
+                           [AppName,
+                            rebar_opts:get(
+                              rebar_app_info:opts(AppInfo1),
+                              edoc_opts)]),
+                        {StateAcc1, NeedsTwoPasses0 orelse NeedsTwoPasses1}
+                    catch
+                        _Class:Reason:Stacktrace ->
+                            {app_failed, AppName, Reason, Stacktrace}
+                    end
+            end, {State, false}, ProjectApps),
+    case Ret of
+        {app_failed, AppName, Reason, Stacktrace} ->
+            ?ERROR(
+               "Failed to fetch JS+CSS resources for ~ts: ~p~n~p",
+               [AppName, Reason, Stacktrace]),
+            rebar_prv_edoc:do(State);
+        {State1, NeedsTwoPasses} ->
+            %% We clear the global settings we override in each apps.
+            %% Otherwise they are duplicated in the merged options in the
+            %% `edoc' Rebar command.
+            EdocOpts1 = lists:foldl(
+                          fun(Option, EdocOptsAcc) ->
+                                  lists:keydelete(Option, 1, EdocOptsAcc)
+                          end,
+                          EdocOpts,
+                          [stylesheet, xml_export, doclet, layout]),
+            State2 = rebar_state:set(State1, edoc_opts, EdocOpts1),
+            ?DEBUG(
+               "Overriden global edoc options: ~p",
+               [rebar_state:get(State2, edoc_opts)]),
+
+            %% We may call the `edoc' Rebar command twice:
+            %%   1. Once with the updated configuration for this plugin. We
+            %%      assert that the state was not modified by this first
+            %%      pass.
+            %%   2. Once with the initial configuration if the user configured
+            %%      his own EDoc backend modules.
+            ?DEBUG("EDoc run #1 for `rebar3_edoc_extension`", []),
+            case rebar_prv_edoc:do(State2) of
+                {ok, State2} ->
+                    ok;
+                {ok, _State3} ->
+                    ?WARN(
+                       "Dropping modified state in "
+                       "`rebar3_edoc_extensions_wrapper`",
+                       []),
+                    ok;
+                Error ->
+                    ?ERROR(
+                       "Failed to run `rebar3_edoc_extensions_wrapper` pass: "
+                       "~p",
+                       [Error]),
+                    ok
+            end,
+            case NeedsTwoPasses of
+                true ->
+                    ?DEBUG(
+                       "EDoc run #2 with user-configured backend modules",
+                       []),
+                    rebar_prv_edoc:do(State);
+                false ->
+                    {ok, State}
+            end
+    end.
 
 -spec format_error(any()) -> iolist().
 format_error(Reason) ->
@@ -239,17 +307,17 @@ download(Url, Filename) ->
     {ok, saved_to_file} = httpc:request(get, {Url, []}, HTTPOptions, Options, default),
     ok.
 
--spec prepare_stylesheets(DocDir, EdocOpts) -> ok when
+-spec prepare_stylesheets(DocDir, UserStylesheet) -> ok when
       DocDir :: file:filename(),
-      EdocOpts :: [tuple()].
-prepare_stylesheets(DocDir, EdocOpts) ->
+      UserStylesheet :: string().
+prepare_stylesheets(DocDir, UserStylesheet) ->
     %% We first want to import the two CSS files we downloaded. We then import
     %% the user-provided CSS file, if any.
     Stylesheets0 = ["github-markdown.css",
                     "prism.css"],
-    Stylesheets = case proplists:get_value(stylesheet, EdocOpts) of
-                      undefined  -> Stylesheets0;
-                      Stylesheet -> Stylesheets0 ++ [Stylesheet]
+    Stylesheets = case UserStylesheet of
+                      undefined -> Stylesheets0;
+                      _         -> Stylesheets0 ++ [UserStylesheet]
                   end,
     generate_wrapping_css(DocDir, Stylesheets).
 
@@ -267,47 +335,41 @@ generate_wrapping_css(DocDir, Stylesheets) ->
     ok = file:write_file(Filename, Content),
     ok.
 
--spec chain_edoc_backends(EdocOpts) -> EdocOpts when
+-spec are_edoc_backends_non_default(EdocOpts) -> AreNonDefault when
+      EdocOpts :: [tuple()],
+      AreNonDefault :: boolean().
+are_edoc_backends_non_default(EdocOpts) ->
+    lists:any(
+      fun
+          ({doclet, edoc_doclet}) -> false;
+          ({layout, edoc_layout}) -> false;
+          ({_, undefined})        -> false;
+          (_)                     -> true
+      end,
+      [{Option, proplists:get_value(Option, EdocOpts)}
+       || Option <- [doclet, layout]]).
+
+-spec override_edoc_backends(EdocOpts) -> EdocOpts when
       EdocOpts :: [tuple()].
-chain_edoc_backends(EdocOpts) ->
+override_edoc_backends(EdocOpts) ->
     Options = [xml_export,
                layout,
                doclet],
-    chain_edoc_backends(Options, EdocOpts).
+    override_edoc_backends(Options, EdocOpts).
 
--spec chain_edoc_backends(Options, EdocOpts) -> EdocOpts when
+-spec override_edoc_backends(Options, EdocOpts) ->
+    EdocOpts when
       Options :: [xml_export | doclet | layout],
       EdocOpts :: [tuple()].
-chain_edoc_backends([xml_export | Rest], EdocOpts) ->
-    %% For `xml_export', we override the module, regardless of what the user
-    %% provided. I don't know if we can support module chaining here as there
-    %% is no options passed to the module functions. Perhaps we could use a
-    %% `persistent_term', but anyway, I don't have a use case currently to
-    %% test this.
-    EdocOpts1 = lists:keystore(
-                  xml_export, 1, EdocOpts,
-                  {xml_export, rebar3_edoc_extensions_export}),
-    chain_edoc_backends(Rest, EdocOpts1);
-chain_edoc_backends([Option | Rest], EdocOpts)
-  when Option =:= doclet orelse Option =:= layout ->
-    %% For d`doclet' and `layout', we override the user-configured module by
-    %% our own. However, we store the former in another option. When
-    %% processing the documentation, our own module will called the
-    %% user-configured module and patch its output.
-    %%
-    %% If there is no user-configured module, we default to `edoc_doclet' and
-    %% `edoc_layout'.
-    DefaultMod = list_to_atom(io_lib:format("edoc_~s", [Option])),
-    ChainedMod = proplists:get_value(Option, EdocOpts, DefaultMod),
-    ChainedOption = list_to_atom(
-                      io_lib:format("chained_~s", [Option])),
+override_edoc_backends([Option | Rest], EdocOpts) ->
+    Mod = case Option of
+              doclet     -> rebar3_edoc_extensions_wrapper;
+              layout     -> rebar3_edoc_extensions_wrapper;
+              xml_export -> rebar3_edoc_extensions_export
+          end,
     EdocOpts1 = lists:keystore(
                   Option, 1, EdocOpts,
-                  {ChainedOption, ChainedMod}),
-
-    EdocOpts2 = lists:keystore(
-                  Option, 1, EdocOpts1,
-                  {Option, rebar3_edoc_extensions_wrapper}),
-    chain_edoc_backends(Rest, EdocOpts2);
-chain_edoc_backends([], EdocOpts) ->
+                  {Option, Mod}),
+    override_edoc_backends(Rest, EdocOpts1);
+override_edoc_backends([], EdocOpts) ->
     EdocOpts.
