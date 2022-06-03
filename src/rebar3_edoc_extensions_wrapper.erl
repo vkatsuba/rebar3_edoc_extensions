@@ -27,19 +27,16 @@
 
 -spec module(term(), list()) -> term().
 module(Element, Options) ->
-    LayoutMod = get_chained_mod(layout, Options),
-    LayoutMod:module(Element, Options).
+    edoc_layout:module(Element, Options).
 
 -spec overview(term(), list()) -> [binary() | list()].
 overview(Element, Options) ->
-    LayoutMod = get_chained_mod(layout, Options),
-    Overview = LayoutMod:overview(Element, Options),
+    Overview = edoc_layout:overview(Element, Options),
     patch_html(Overview).
 
 -spec run(#doclet_gen{}, #?RECORD{}) -> ok | no_return().
 run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
-    DocletMod = get_chained_mod(doclet, Ctxt),
-    ok = DocletMod:run(Cmd, Ctxt),
+    ok = edoc_doclet:run(Cmd, Ctxt),
     File = filename:join(Dir, "modules-frame.html"),
     {ok, Content0} = file:read_file(File),
     Content1 = add_toc(App, Content0, Dir),
@@ -48,30 +45,6 @@ run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
         ok              -> ok;
         {error, Reason} -> exit({error, Reason})
     end.
-
--spec get_chained_mod(Option, Options | Ctxt) -> Value when
-      Option :: doclet | layout,
-      Options :: [tuple()],
-      Ctxt :: #?RECORD{},
-      Value :: any().
-get_chained_mod(doclet = Option, Options) when is_list(Options) ->
-    get_chained_mod(proplists:get_value(chained_doclet, Options), Option, edoc_doclet);
-get_chained_mod(layout = Option, Options) when is_list(Options) ->
-    get_chained_mod(proplists:get_value(chained_layout, Options), Option, edoc_layout);
-get_chained_mod(Option, Ctxt) when is_tuple(Ctxt) ->
-    #?RECORD{opts = Options} = Ctxt,
-    get_chained_mod(Option, Options).
-
--spec get_chained_mod(Option1, Option2, DefaultOption) -> Value when
-      Option1 :: atom(),
-      Option2 :: doclet | layout,
-      DefaultOption :: atom(),
-      Value :: atom().
-get_chained_mod(undefined, Option, DefaultOption) ->
-    ?DEBUG("Used default option '~p' value for '~p'", [DefaultOption, Option]),
-    DefaultOption;
-get_chained_mod(Option, _, _) ->
-    Option.
 
 -spec patch_html(list()) -> list().
 patch_html(Html) ->
