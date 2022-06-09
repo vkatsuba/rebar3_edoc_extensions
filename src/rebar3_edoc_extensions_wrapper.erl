@@ -31,25 +31,45 @@ module(Element, Options) ->
 
 -spec overview(term(), list()) -> [binary() | list()].
 overview(Element, Options) ->
+    Dir = proplists:get_value(dir, Options),
     Overview = edoc_layout:overview(Element, Options),
-    patch_html(Overview).
+    patch_html(Dir, Overview).
 
 -spec run(#doclet_gen{}, #?RECORD{}) -> ok | no_return().
 run(#doclet_gen{app = App} = Cmd, #?RECORD{dir = Dir} = Ctxt) ->
     ok = edoc_doclet:run(Cmd, Ctxt),
+    ok = patch_index(Dir),
+    ok = patch_modules_frame(App, Dir).
+
+-spec patch_index(Dir) -> ok when
+      Dir :: file:filename().
+patch_index(Dir) ->
+    File = filename:join(Dir, "index.html"),
+    {ok, Content0} = file:read_file(File),
+    Content1 = patch_html(Dir, Content0),
+    case file:write_file(File, Content1) of
+        ok              -> ok;
+        {error, Reason} -> exit({error, Reason})
+    end.
+
+-spec patch_modules_frame(App, Dir) -> ok when
+      App :: atom(),
+      Dir :: file:filename().
+patch_modules_frame(App, Dir) ->
     File = filename:join(Dir, "modules-frame.html"),
     {ok, Content0} = file:read_file(File),
     Content1 = add_toc(App, Content0, Dir),
-    Content2 = patch_html(Content1),
+    Content2 = patch_html(Dir, Content1),
     case file:write_file(File, Content2) of
         ok              -> ok;
         {error, Reason} -> exit({error, Reason})
     end.
 
--spec patch_html(list()) -> list().
-patch_html(Html) ->
+-spec patch_html(file:filename(), list() | binary()) -> list().
+patch_html(Dir, Html) ->
+    Html1 = add_head_addon(Dir, Html),
     Html2 = re:replace(
-                  Html,
+                  Html1,
                   "<body +bgcolor=\"[^\"]*\">",
                   "<body class=\"" ?BODY_CLASSES "\">\n"
                   ?SYNTAX_HIGHLIGHTING_JS,
@@ -65,6 +85,22 @@ patch_html(Html) ->
                   "<pre><code class=\"language-\\1\">\\2</code></pre>",
                   [{return, list}, ungreedy, dotall, global]),
     Html4.
+
+-spec add_head_addon(Dir, Html) -> Html when
+      Dir :: file:filename(),
+      Html :: list() | binary().
+add_head_addon(Dir, Html) ->
+    AddonFile = filename:join(Dir, ?HEAD_ADDON_FILENAME),
+    case file:read_file(AddonFile) of
+        {ok, Addon} ->
+            re:replace(
+              Html,
+              "</head>",
+              [Addon, "</head>"],
+              [{return, list}]);
+        _ ->
+            Html
+    end.
 
 -spec add_toc(term(), binary(), list()) -> list().
 add_toc(App, Html, Dir) ->
@@ -133,7 +169,7 @@ generate_toc1([], CurrentLevel, Result, App) ->
      "</li>\n",
      ["</ul>\n" || _ <- lists:seq(0, CurrentLevel - 1)]].
 
--spec get_overview(list()) -> binary() | undefined.
+-spec get_overview(file:filename()) -> binary() | undefined.
 get_overview(Dir) ->
     OverviewFile = filename:join(Dir, "overview.edoc"),
     case file:read_file(OverviewFile) of
