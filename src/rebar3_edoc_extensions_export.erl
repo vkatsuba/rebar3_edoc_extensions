@@ -28,6 +28,17 @@
     xmerl_html:'#root#'(Data, Attrs, [], E).
 
 -spec '#element#'(term(), term(), term(), term(), term()) -> term().
+'#element#'(head = Tag, Data, Attrs, Parents, E) ->
+    %% FIXME: We don't have access to EDoc options here. Therefore we assume
+    %% that the EDoc directory is `doc' in the current working directory...
+    {ok, Cwd} = file:get_cwd(),
+    Dir = filename:join(Cwd, "doc"),
+    AddonFile = filename:join(Dir, ?HEAD_ADDON_FILENAME),
+    Data1 = case file:read_file(AddonFile) of
+                {ok, Addon} -> [Data, Addon];
+                _           -> Data
+            end,
+    xmerl_html:'#element#'(Tag, Data1, Attrs, Parents, E);
 '#element#'(body = Tag, Data, _Attrs, Parents, E) ->
     Data1 = [?SYNTAX_HIGHLIGHTING_JS,
              Data],
