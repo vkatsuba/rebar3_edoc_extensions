@@ -1,0 +1,10 @@
+@doc Test app for `rebar3_edoc_extensions'
+
+== Some Unicode characters ==
+
+Here are some Unicode characters for the test — which should succeed.
+
+<ul>
+<li>Ç</li>
+<li>É</li>
+</ul>
