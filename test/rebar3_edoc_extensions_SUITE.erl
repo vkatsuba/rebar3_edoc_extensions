@@ -61,14 +61,19 @@ test_app(_Config) ->
     ok = file:set_cwd("../../../../test"),
     State = init_test_app(),
     {Res, _} = edoc(State),
-    {ok, Bin} = file:read_file("test_app/doc/test.html"),
     ?assertEqual(ok, Res),
+
+    {ok, Bin} = file:read_file("test_app/doc/test.html"),
     ?assertEqual(true, filelib:is_file("test_app/doc/edoc-extensions.css")),
     ?assertEqual(true, filelib:is_file("test_app/doc/prism.js")),
     ?assertEqual(true, filelib:is_file("test_app/doc/prism.css")),
     ?assertEqual(true, filelib:is_file("test_app/doc/github-markdown.css")),
     ?assertEqual(true, nomatch /= re:run(Bin, "language-erlang")),
-    ?assertEqual(true, nomatch /= re:run(Bin, "edoc-extensions.css")).
+    ?assertEqual(true, nomatch /= re:run(Bin, "edoc-extensions.css")),
+
+    {ok, Overview} = file:read_file("test_app/doc/overview-summary.html"),
+    ?assertEqual(true, nomatch /= re:run(Overview, "Added to head element")),
+    ?assertEqual(true, nomatch /= re:run(Overview, "Some Unicode")).
 
 -spec command(list()) -> ok | no_return().
 command(_Config) ->

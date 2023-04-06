@@ -73,17 +73,17 @@ patch_html(Dir, Html) ->
                   "<body +bgcolor=\"[^\"]*\">",
                   "<body class=\"" ?BODY_CLASSES "\">\n"
                   ?SYNTAX_HIGHLIGHTING_JS,
-                  [{return, list}]),
+                  [{return, list}, unicode]),
     Html3 = re:replace(
                   Html2,
                   "<pre>(.*)</pre>",
                   "<pre><code>\\1</code></pre>",
-                  [{return, list}, ungreedy, dotall, global]),
+                  [{return, list}, unicode, ungreedy, dotall, global]),
     Html4 = re:replace(
                   Html3,
                   "<pre><code> +(" ?LANG_REGEX ")(?:\n)(.*)</code></pre>",
                   "<pre><code class=\"language-\\1\">\\2</code></pre>",
-                  [{return, list}, ungreedy, dotall, global]),
+                  [{return, list}, unicode, ungreedy, dotall, global]),
     Html4.
 
 -spec add_head_addon(Dir, Html) -> Html when
@@ -97,7 +97,7 @@ add_head_addon(Dir, Html) ->
               Html,
               "</head>",
               [Addon, "</head>"],
-              [{return, list}]);
+              [{return, list}, unicode]);
         _ ->
             Html
     end.
@@ -112,7 +112,7 @@ add_toc(App, Html, Dir) ->
               Html,
               "(<h2 class=\"indextitle\">Modules</h2>)",
               Toc ++ "\\1",
-              [{return, list}])
+              [{return, list}, unicode])
     end.
 
 -spec generate_toc([binary() | list()], term()) -> [binary() | list()] | undefined.
@@ -121,19 +121,21 @@ generate_toc(Dir, App) ->
         undefined ->
             undefined;
         Overview ->
-            Lines = re:split(Overview, "\\n", [{return, list}]),
+            Lines = re:split(Overview, "\\n", [{return, list}, unicode]),
             Titles = [Line ||
                       Line <- Lines,
-                      match =:= re:run(Line, "^=+.*=+$", [{capture, none}])],
+                      match =:= re:run(Line, "^=+.*=+$",
+                                       [{capture, none}, unicode])],
             generate_toc1(Titles, 0, [], App)
     end.
 
 -spec generate_toc1([binary() | list()], integer(), list(), term()) -> [binary() | list()].
 generate_toc1([Title | Rest], CurrentLevel, Result, App) ->
-    ReOpts = [{capture, all_but_first, list}],
+    ReOpts = [{capture, all_but_first, list}, unicode],
     {match, [Equals, Title1]} = re:run(Title, "^(=+) *(.*)", ReOpts),
-    Title2 = re:replace(Title1, " *=+$", "", [{return, list}]),
-    Anchor = "#" ++ re:replace(Title2, " ", "_", [{return, list}, global]),
+    Title2 = re:replace(Title1, " *=+$", "", [{return, list}, unicode]),
+    Anchor = "#" ++ re:replace(
+                      Title2, " ", "_", [{return, list}, unicode, global]),
     Link = "<a href=\"overview-summary.html" ++ Anchor ++ "\"" ++
       "target=\"overviewFrame\">" ++ Title2 ++ "</a>",
     Level = length(Equals) - 1,
