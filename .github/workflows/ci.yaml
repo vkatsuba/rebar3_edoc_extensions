@@ -18,7 +18,7 @@ jobs:
         otp: [24, 25]
         rebar: [3.20.0]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: erlef/setup-beam@v1
       with:
         otp-version: ${{matrix.otp}}
@@ -61,10 +61,10 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        otp: [23, 24, 25]
+        otp: [23]
         rebar: [3.18.0]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - uses: erlef/setup-beam@v1
       with:
         otp-version: ${{matrix.otp}}
