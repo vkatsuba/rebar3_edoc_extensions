@@ -14,7 +14,7 @@
 
 -export(['#xml-inheritance#'/0]).
 
--export(['#root#'/4, '#element#'/5, '#text#'/1]).
+-export(['#root#'/4, '#element#'/5, '#text#'/1, '#cdata#'/1]).
 
 -spec '#xml-inheritance#'() -> [].
 '#xml-inheritance#'() -> [].
@@ -22,6 +22,10 @@
 -spec '#text#'(term()) -> term().
 '#text#'(Text) ->
     xmerl_html:'#text#'(Text).
+
+-spec '#cdata#'(term()) -> term().
+'#cdata#'(Text) ->
+    xmerl_html:'#cdata#'(Text).
 
 -spec '#root#'(term(), term(), [], term()) -> term().
 '#root#'(Data, Attrs, [], E) ->
